@@ -63,10 +63,13 @@
 /* Layout */
 .chat-window-container {
     width: 100%;
-    height: 100vh;
+    height: 100dvh;
     display: flex;
     overflow: hidden;
     position: relative;
+    background: var(--bg-main);
+    padding-top: env(safe-area-inset-top, 0);
+    padding-bottom: env(safe-area-inset-bottom, 0);
 }
 
 @media (min-width: 1024px) {
@@ -106,7 +109,7 @@
     z-index: 1000;
     display: flex;
     flex-direction: column;
-    padding: 24px;
+    padding: calc(24px + env(safe-area-inset-top, 0)) 24px calc(24px + env(safe-area-inset-bottom, 0));
     transform: translateX(-100%);
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -643,7 +646,7 @@
 
 /* Input Area */
 .message-input-area {
-    padding: 16px 24px;
+    padding: 16px 24px calc(16px + env(safe-area-inset-bottom, 0));
     background: var(--bg-card);
 }
 

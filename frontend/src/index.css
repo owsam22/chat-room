@@ -39,12 +39,14 @@ body {
         radial-gradient(at 100% 0%, rgba(96, 165, 250, 0.05) 0px, transparent 50%);
     color: var(--text-main);
     min-height: 100vh;
+    min-height: 100dvh;
     overflow: hidden;
     transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 #root {
     height: 100vh;
+    height: 100dvh;
     width: 100vw;
     display: flex;
     align-items: center;
