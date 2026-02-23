@@ -37,7 +37,7 @@ const Login: React.FC<LoginProps> = ({ username, setUsername, room, setRoom, joi
                 <div className="logo-container">
                     <Bot size={32} />
                 </div>
-                <h1>Join GlowChat</h1>
+                <h1>Join QuickChat</h1>
                 <p>Premium AI-powered communication</p>
             </div>
 

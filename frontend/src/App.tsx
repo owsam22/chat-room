@@ -28,7 +28,7 @@ function App() {
     const [roomUsers, setRoomUsers] = useState<string[]>([]);
     const [typists, setTypists] = useState<string[]>([]);
     const [darkMode, setDarkMode] = useState(() => {
-        return localStorage.getItem('glowchat-theme') === 'dark';
+        return localStorage.getItem('quickchat-theme') === 'dark';
     });
 
     const bottomRef = useRef<HTMLDivElement>(null);
@@ -45,7 +45,7 @@ function App() {
     // Apply Theme
     useEffect(() => {
         document.documentElement.setAttribute('data-theme', darkMode ? 'dark' : 'light');
-        localStorage.setItem('glowchat-theme', darkMode ? 'dark' : 'light');
+        localStorage.setItem('quickchat-theme', darkMode ? 'dark' : 'light');
     }, [darkMode]);
 
     const joinRoom = (isCreating = false) => {
@@ -101,8 +101,8 @@ function App() {
 
     const handleShare = async () => {
         const shareData = {
-            title: 'Join my GlowChat Room',
-            text: `Hey! Join my chat room #${room} on GlowChat.`,
+            title: 'Join my QuickChat Room',
+            text: `Hey! Join my chat room #${room} on QuickChat.`,
             url: `${window.location.origin}${window.location.pathname}?room=${room}`
         };
 

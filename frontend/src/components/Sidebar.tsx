@@ -25,7 +25,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, activeTab, setActive
                 <div className="sidebar-brand">
                     <div className="brand-l">
                         <Bot size={32} strokeWidth={2.5} className="text-primary" />
-                        <span style={{ letterSpacing: '-0.03em' }}>GlowChat</span>
+                        <span style={{ letterSpacing: '-0.03em' }}>QuickChat</span>
                     </div>
                     <button className="mobile-close" onClick={onClose} aria-label="Close Sidebar">
                         <X size={20} />
