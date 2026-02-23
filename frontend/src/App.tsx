@@ -26,6 +26,7 @@ function App() {
     const [error, setError] = useState('');
     const [participantCount, setParticipantCount] = useState(0);
     const [roomUsers, setRoomUsers] = useState<string[]>([]);
+    const [typists, setTypists] = useState<string[]>([]);
     const [darkMode, setDarkMode] = useState(() => {
         return localStorage.getItem('glowchat-theme') === 'dark';
     });
@@ -75,18 +76,19 @@ function App() {
         }
     };
 
-    const sendMessage = async () => {
-        if (currentMessage !== '') {
+    const sendMessage = async (msg: string, replyTo?: any) => {
+        if (msg !== '') {
             const messageData = {
+                id: username + '-' + Date.now(),
                 room: room,
                 author: username,
-                message: currentMessage,
+                message: msg,
                 time: new Date(Date.now()).getHours() + ":" + new Date(Date.now()).getMinutes().toString().padStart(2, '0'),
+                replyTo: replyTo || null
             };
 
             await socket.emit('send_message', messageData);
             setMessageList((list) => [...list, messageData]);
-            setCurrentMessage('');
         }
     };
 
@@ -130,14 +132,20 @@ function App() {
             setRoomUsers(data.users);
         };
 
+        const handleTypingUpdate = (data: { typists: string[] }) => {
+            setTypists(data.typists.filter(u => u !== username));
+        };
+
         socket.on('receive_message', handleReceiveMessage);
         socket.on('room_update', handleRoomUpdate);
+        socket.on('typing_update', handleTypingUpdate);
 
         return () => {
             socket.off('receive_message', handleReceiveMessage);
             socket.off('room_update', handleRoomUpdate);
+            socket.off('typing_update', handleTypingUpdate);
         };
-    }, []);
+    }, [username]);
 
     useEffect(() => {
         bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -172,6 +180,8 @@ function App() {
                     username={username}
                     participantCount={participantCount}
                     roomUsers={roomUsers}
+                    typists={typists}
+                    socket={socket}
                     messageList={messageList}
                     currentMessage={currentMessage}
                     setCurrentMessage={setCurrentMessage}

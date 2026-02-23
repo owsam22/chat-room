@@ -1,20 +1,27 @@
 import React from 'react';
-import { Menu, Zap, User, Copy, QrCode, PlusCircle, Send, CheckCircle2, Hash, Share2, X } from 'lucide-react';
+import { Menu, Zap, User, Copy, QrCode, PlusCircle, Send, CheckCircle2, Hash, Share2, X, Reply } from 'lucide-react';
 
 interface Message {
+    id: string;
     author: string;
     message: string;
     time: string;
     isSystem?: boolean;
+    replyTo?: {
+        id: string;
+        author: string;
+        message: string;
+    } | null;
 }
 
 interface ChatAreaProps {
     room: string;
     username: string;
+    socket: any;
     messageList: Message[];
     currentMessage: string;
     setCurrentMessage: (msg: string) => void;
-    sendMessage: () => void;
+    sendMessage: (msg: string, replyTo?: any) => void;
     onMobileMenuToggle: () => void;
     onCopyRoomId: () => void;
     onShowQR: () => void;
@@ -23,11 +30,13 @@ interface ChatAreaProps {
     bottomRef: React.RefObject<HTMLDivElement>;
     participantCount: number;
     roomUsers: string[];
+    typists: string[];
 }
 
 const ChatArea: React.FC<ChatAreaProps> = ({
     room,
     username,
+    socket,
     messageList,
     currentMessage,
     setCurrentMessage,
@@ -39,9 +48,49 @@ const ChatArea: React.FC<ChatAreaProps> = ({
     copied,
     bottomRef,
     participantCount,
-    roomUsers
+    roomUsers,
+    typists
 }) => {
     const [showMembers, setShowMembers] = React.useState(false);
+    const [replyTo, setReplyTo] = React.useState<Message | null>(null);
+    const typingTimeoutRef = React.useRef<any>(null);
+
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setCurrentMessage(e.target.value);
+
+        // Emit typing status
+        socket.emit('typing_status', { room, username, isTyping: true });
+
+        if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+
+        typingTimeoutRef.current = setTimeout(() => {
+            socket.emit('typing_status', { room, username, isTyping: false });
+        }, 2000);
+    };
+
+    const handleSend = () => {
+        if (currentMessage.trim() === '') return;
+
+        sendMessage(currentMessage, replyTo ? {
+            id: replyTo.id,
+            author: replyTo.author,
+            message: replyTo.message
+        } : null);
+
+        setCurrentMessage('');
+        setReplyTo(null);
+
+        // Immediately stop typing indicator on send
+        if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+        socket.emit('typing_status', { room, username, isTyping: false });
+    };
+
+    const formatTypingText = () => {
+        if (typists.length === 0) return '';
+        if (typists.length === 1) return `${typists[0]} is typing...`;
+        if (typists.length === 2) return `${typists[0]} and ${typists[1]} are typing...`;
+        return `${typists[0]} and ${typists.length - 1} others are typing...`;
+    };
 
     return (
         <div className="chat-main">
@@ -105,8 +154,26 @@ const ChatArea: React.FC<ChatAreaProps> = ({
                         key={index}
                         className={`message-wrapper ${msg.isSystem ? 'system' : msg.author === username ? 'sent' : 'received'}`}
                     >
+                        {!msg.isSystem && (
+                            <button
+                                className="reply-action"
+                                title="Reply"
+                                onClick={() => setReplyTo(msg)}
+                            >
+                                <Reply size={14} />
+                            </button>
+                        )}
                         <div className="message-bubble">
-                            {msg.message}
+                            {msg.replyTo && (
+                                <div className="reply-quote" onClick={() => {
+                                    const element = document.getElementById(`msg-${msg.replyTo?.id}`);
+                                    element?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                }}>
+                                    <div className="reply-author">{msg.replyTo.author}</div>
+                                    <div className="reply-text">{msg.replyTo.message}</div>
+                                </div>
+                            )}
+                            <div id={`msg-${msg.id}`}>{msg.message}</div>
                         </div>
                         {!msg.isSystem && (
                             <div className="message-meta">
@@ -117,20 +184,40 @@ const ChatArea: React.FC<ChatAreaProps> = ({
                         )}
                     </div>
                 ))}
+
+                {typists.length > 0 && (
+                    <div className="typing-indicator">
+                        <div className="typing-dots">
+                            <span></span><span></span><span></span>
+                        </div>
+                        {formatTypingText()}
+                    </div>
+                )}
                 <div ref={bottomRef} />
             </div>
 
             <div className="message-input-area">
+                {replyTo && (
+                    <div className="reply-preview-container">
+                        <div className="reply-preview-content">
+                            <div className="reply-author">Replying to {replyTo.author}</div>
+                            <div className="reply-text">{replyTo.message}</div>
+                        </div>
+                        <button className="icon-btn" onClick={() => setReplyTo(null)}>
+                            <X size={18} />
+                        </button>
+                    </div>
+                )}
                 <div className="input-container">
                     <PlusCircle size={20} className="action-btn" />
                     <input
                         type="text"
                         value={currentMessage}
                         placeholder="Ask or type something..."
-                        onChange={(e) => setCurrentMessage(e.target.value)}
-                        onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+                        onChange={handleInputChange}
+                        onKeyPress={(e) => e.key === 'Enter' && handleSend()}
                     />
-                    <button onClick={sendMessage} className="action-btn send-btn">
+                    <button onClick={handleSend} className="action-btn send-btn">
                         <Send size={18} />
                     </button>
                 </div>

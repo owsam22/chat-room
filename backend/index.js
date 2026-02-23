@@ -18,11 +18,17 @@ const PORT = process.env.PORT || 5000;
 
 // Track active rooms and their users
 const activeRooms = new Map(); // room -> Set of usernames
+const typingUsers = new Map(); // room -> Set of usernames
 
 const sendRoomUpdate = (room) => {
     const count = io.sockets.adapter.rooms.get(room)?.size || 0;
     const users = Array.from(activeRooms.get(room) || []);
     io.in(room).emit('room_update', { count, users });
+};
+
+const sendTypingUpdate = (room) => {
+    const typists = Array.from(typingUsers.get(room) || []);
+    io.in(room).emit('typing_update', { typists });
 };
 
 io.on('connection', (socket) => {
@@ -37,6 +43,7 @@ io.on('connection', (socket) => {
     socket.on('create_room', (room) => {
         if (!activeRooms.has(room)) {
             activeRooms.set(room, new Set());
+            typingUsers.set(room, new Set());
         }
         console.log(`Room Created: ${room}`);
     });
@@ -47,6 +54,7 @@ io.on('connection', (socket) => {
         // Ensure room is marked as active when joined
         if (!activeRooms.has(room)) {
             activeRooms.set(room, new Set());
+            typingUsers.set(room, new Set());
         }
 
         // Store user info in socket
@@ -63,6 +71,7 @@ io.on('connection', (socket) => {
 
         // Notify others in the room
         socket.to(room).emit('receive_message', {
+            id: 'sys-' + Date.now(),
             author: 'System',
             message: `${username} has joined the conversation`,
             time: new Date(Date.now()).getHours() + ":" + new Date(Date.now()).getMinutes().toString().padStart(2, '0'),
@@ -71,7 +80,21 @@ io.on('connection', (socket) => {
     });
 
     socket.on('send_message', (data) => {
+        // Just relay the data, including room ID, author, message, time, id, and optional replyTo
         socket.to(data.room).emit('receive_message', data);
+    });
+
+    socket.on('typing_status', (data) => {
+        const { room, username, isTyping } = data;
+        const typists = typingUsers.get(room);
+        if (typists) {
+            if (isTyping) {
+                typists.add(username);
+            } else {
+                typists.delete(username);
+            }
+            sendTypingUpdate(room);
+        }
     });
 
     socket.on('disconnecting', () => {
@@ -86,8 +109,15 @@ io.on('connection', (socket) => {
                 // if (roomUsers.size === 0) activeRooms.delete(room);
             }
 
+            const typists = typingUsers.get(room);
+            if (typists) {
+                typists.delete(username);
+                sendTypingUpdate(room);
+            }
+
             // Notify others
             socket.to(room).emit('receive_message', {
+                id: 'sys-' + Date.now(),
                 author: 'System',
                 message: `${username} has left the conversation`,
                 time: new Date(Date.now()).getHours() + ":" + new Date(Date.now()).getMinutes().toString().padStart(2, '0'),
