@@ -41,7 +41,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, activeTab, setActive
                         <MessageSquare size={18} />
                         <span>Active Chat</span>
                     </div>
-                    
+
                     {/* <div
                         className={`menu-item ${activeTab === 'search' ? 'active' : ''}`}
                         onClick={() => { setActiveTab('search'); onClose(); }}
