@@ -212,7 +212,7 @@ Focused. Fast. Disposable.
 # 🏷️ Branding
 
 <p align="center">
-  <img src="./assets/watermark.png" alt="Antigravity Watermark" width="180px" />
+  <img src="./assets/watermark.png" alt="QuickChat Watermark" width="180px" />
 </p>
 
 Built with precision by SAM
