@@ -105,18 +105,42 @@ No long-term data retention.
 # 📂 Project Structure
 
 ```
-GlowChat/
-├── backend/
-│   ├── server.js
-│   └── package.json
-├── frontend/
-│   ├── src/
-│   └── package.json
-├── assets/
-│   ├── banner.png
-│   ├── preview.png
-│   ├── qr-demo.gif
-│   └── watermark.png
+QuickChat/
+├── 📁 assets
+│   ├── 🖼️ banner.png
+│   ├── 🖼️ preview.png
+│   ├── 🖼️ qr-demo.gif
+│   └── 🖼️ watermark.png
+├── 📁 backend
+│   ├── 📄 index.js
+│   ├── ⚙️ package-lock.json
+│   └── ⚙️ package.json
+├── 📁 frontend
+│   ├── 📁 public
+│   ├── 📁 src
+│   │   ├── 📁 components
+│   │   │   ├── 📄 ChatArea.tsx
+│   │   │   ├── 📄 Login.tsx
+│   │   │   ├── 📄 NewRoomTab.tsx
+│   │   │   ├── 📄 QRModal.tsx
+│   │   │   ├── 📄 SearchTab.tsx
+│   │   │   ├── 📄 SettingsTab.tsx
+│   │   │   └── 📄 Sidebar.tsx
+│   │   ├── 🎨 App.css
+│   │   ├── 📄 App.tsx
+│   │   ├── 🎨 index.css
+│   │   ├── 📄 main.tsx
+│   │   └── 📄 vite-env.d.ts
+│   ├── 🌐 index.html
+│   ├── ⚙️ package-lock.json
+│   ├── ⚙️ package.json
+│   ├── ⚙️ tsconfig.json
+│   ├── ⚙️ tsconfig.node.json
+│   └── 📄 vite.config.js
+├── ⚙️ .gitignore
+├── 📝 README.md
+├── ⚙️ package-lock.json
+└── ⚙️ package.json
 ```
 
 ---
