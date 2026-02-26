@@ -313,7 +313,7 @@
     justify-content: center;
     border-radius: 12px;
     border: 1px solid #fca5a5;
-    background: #fee2e2;
+    background: #ffc5c5;
     color: #ef4444;
     cursor: pointer;
     transition: 0.2s;
@@ -322,7 +322,7 @@
 .btn-logout-plain:hover {
     background: #ef4444;
     color: white;
-    transform: rotate(-10deg);
+    transform: rotate(-2deg);
 }
 
 /* Chat Main Area */
