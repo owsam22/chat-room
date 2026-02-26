@@ -187,7 +187,7 @@ const ChatArea: React.FC<ChatAreaProps> = ({
             <div className="message-container">
                 {messageList.map((msg, index) => (
                     <div
-                        key={index}
+                        key={msg.id}
                         className={`message-wrapper ${msg.isSystem ? 'system' : msg.author === username ? 'sent' : 'received'}`}
                         onTouchStart={(e) => !msg.isSystem && handleTouchStart(e, msg.id)}
                         onTouchMove={(e) => !msg.isSystem && handleTouchMove(e, msg.id)}

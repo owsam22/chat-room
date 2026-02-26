@@ -142,15 +142,21 @@ function App() {
         const handleTypingUpdate = (data: { typists: string[] }) => {
             setTypists(data.typists.filter(u => u !== username));
         };
+        
+        const handleChatHistory = (messages: any[]) => {
+            setMessageList(messages);
+        };
 
         socket.on('receive_message', handleReceiveMessage);
         socket.on('room_update', handleRoomUpdate);
         socket.on('typing_update', handleTypingUpdate);
+        socket.on('chat_history', handleChatHistory);
 
         return () => {
             socket.off('receive_message', handleReceiveMessage);
             socket.off('room_update', handleRoomUpdate);
             socket.off('typing_update', handleTypingUpdate);
+            socket.off('chat_history', handleChatHistory);
         };
     }, [username]);
 

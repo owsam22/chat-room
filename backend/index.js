@@ -9,16 +9,19 @@ app.use(cors());
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
-        origin: "*", // In production, replace with your frontend URL
+        origin: "*",
         methods: ["GET", "POST"]
     }
 });
 
 const PORT = process.env.PORT || 5000;
 
-// Track active rooms and their users
-const activeRooms = new Map(); // room -> Set of usernames
-const typingUsers = new Map(); // room -> Set of usernames
+// Room State
+const activeRooms = new Map();      // room -> Set of usernames
+const typingUsers = new Map();      // room -> Set of usernames
+const roomMessages = new Map();     // room -> Array of messages
+
+const MAX_MESSAGES = 500;
 
 const sendRoomUpdate = (room) => {
     const count = io.sockets.adapter.rooms.get(room)?.size || 0;
@@ -32,9 +35,7 @@ const sendTypingUpdate = (room) => {
 };
 
 io.on('connection', (socket) => {
-    console.log(`User Connected: ${socket.id}`);
 
-    // Verify if room exists
     socket.on('check_room', (room, callback) => {
         const exists = activeRooms.has(room);
         callback({ exists });
@@ -44,22 +45,21 @@ io.on('connection', (socket) => {
         if (!activeRooms.has(room)) {
             activeRooms.set(room, new Set());
             typingUsers.set(room, new Set());
+            roomMessages.set(room, []);
         }
-        console.log(`Room Created: ${room}`);
     });
 
     socket.on('join_room', (data, callback) => {
         const { room, username } = data;
 
-        // Ensure room is marked as active when joined
         if (!activeRooms.has(room)) {
             activeRooms.set(room, new Set());
             typingUsers.set(room, new Set());
+            roomMessages.set(room, []);
         }
 
         const roomUsers = activeRooms.get(room);
 
-        // Case-insensitive username check
         const isNameTaken = Array.from(roomUsers).some(
             u => u.toLowerCase() === username.toLowerCase()
         );
@@ -69,44 +69,62 @@ io.on('connection', (socket) => {
             return;
         }
 
-        // Store user info in socket
         socket.username = username;
         socket.room = room;
 
         roomUsers.add(username);
-
         socket.join(room);
-        console.log(`User ${username} with ID: ${socket.id} joined room: ${room}`);
 
         if (callback) callback({ success: true });
 
-        // Send updated info to room
-        sendRoomUpdate(room);
+        // 🔥 Send chat history to new user
+        socket.emit('chat_history', roomMessages.get(room) || []);
 
-        // Notify others in the room
-        socket.to(room).emit('receive_message', {
+        // System join message
+        const systemMessage = {
             id: 'sys-' + Date.now(),
             author: 'System',
             message: `${username} has joined the conversation`,
-            time: new Date(Date.now()).getHours() + ":" + new Date(Date.now()).getMinutes().toString().padStart(2, '0'),
+            time: new Date().getHours() + ":" + new Date().getMinutes().toString().padStart(2, '0'),
             isSystem: true
-        });
+        };
+
+        const messages = roomMessages.get(room);
+        messages.push(systemMessage);
+
+        if (messages.length > MAX_MESSAGES) {
+            messages.shift();
+        }
+
+        socket.to(room).emit('receive_message', systemMessage);
+
+        sendRoomUpdate(room);
     });
 
     socket.on('send_message', (data) => {
-        // Just relay the data, including room ID, author, message, time, id, and optional replyTo
-        socket.to(data.room).emit('receive_message', data);
+        const { room } = data;
+
+        if (!roomMessages.has(room)) return;
+
+        const messages = roomMessages.get(room);
+
+        messages.push(data);
+
+        if (messages.length > MAX_MESSAGES) {
+            messages.shift();
+        }
+
+        socket.to(room).emit('receive_message', data);
     });
 
     socket.on('typing_status', (data) => {
         const { room, username, isTyping } = data;
         const typists = typingUsers.get(room);
+
         if (typists) {
-            if (isTyping) {
-                typists.add(username);
-            } else {
-                typists.delete(username);
-            }
+            if (isTyping) typists.add(username);
+            else typists.delete(username);
+
             sendTypingUpdate(room);
         }
     });
@@ -115,39 +133,52 @@ io.on('connection', (socket) => {
         const username = socket.username;
         const room = socket.room;
 
-        if (username && room) {
-            const roomUsers = activeRooms.get(room);
-            if (roomUsers) {
-                roomUsers.delete(username);
-                // If room empty, we could delete it, but let's keep it for now
-                // if (roomUsers.size === 0) activeRooms.delete(room);
-            }
+        if (!username || !room) return;
 
-            const typists = typingUsers.get(room);
-            if (typists) {
-                typists.delete(username);
-                sendTypingUpdate(room);
-            }
+        const roomUsers = activeRooms.get(room);
 
-            // Notify others
-            socket.to(room).emit('receive_message', {
-                id: 'sys-' + Date.now(),
-                author: 'System',
-                message: `${username} has left the conversation`,
-                time: new Date(Date.now()).getHours() + ":" + new Date(Date.now()).getMinutes().toString().padStart(2, '0'),
-                isSystem: true
-            });
-
-            // Delay update slightly to ensure socket is gone from adapter
-            setTimeout(() => {
-                sendRoomUpdate(room);
-            }, 100);
+        if (roomUsers) {
+            roomUsers.delete(username);
         }
+
+        const typists = typingUsers.get(room);
+        if (typists) {
+            typists.delete(username);
+            sendTypingUpdate(room);
+        }
+
+        const systemMessage = {
+            id: 'sys-' + Date.now(),
+            author: 'System',
+            message: `${username} has left the conversation`,
+            time: new Date().getHours() + ":" + new Date().getMinutes().toString().padStart(2, '0'),
+            isSystem: true
+        };
+
+        const messages = roomMessages.get(room);
+        if (messages) {
+            messages.push(systemMessage);
+            if (messages.length > MAX_MESSAGES) {
+                messages.shift();
+            }
+        }
+
+        socket.to(room).emit('receive_message', systemMessage);
+
+        setTimeout(() => {
+            sendRoomUpdate(room);
+
+            // 🔥 Auto-delete room when empty
+            const count = io.sockets.adapter.rooms.get(room)?.size || 0;
+            if (count === 0) {
+                activeRooms.delete(room);
+                typingUsers.delete(room);
+                roomMessages.delete(room);
+            }
+
+        }, 100);
     });
 
-    socket.on('disconnect', () => {
-        console.log('User Disconnected', socket.id);
-    });
 });
 
 server.listen(PORT, () => {
