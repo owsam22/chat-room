@@ -1,5 +1,5 @@
 <!-- ===================================================== -->
-<!--                    GLOWCHAT README                   -->
+<!--                    QuickCHAT README                   -->
 <!-- ===================================================== -->
 
 <p align="center">
@@ -218,7 +218,7 @@ http://localhost:3000
 
 # 🔐 Design Philosophy
 
-GlowChat is built around:
+QuickChat is built around:
 
 - 🚫 No accounts
 - ⚡ Instant access
@@ -243,7 +243,7 @@ It is built specifically for **short-lived live interactions.**
 
 # 📈 Vision
 
-GlowChat aims to become a lightweight browser-based interaction tool for:
+QuickChat aims to become a lightweight browser-based interaction tool for:
 
 - 🎓 College seminars
 - 🧑‍💼 Corporate workshops
