@@ -134,14 +134,10 @@ io.on('connection', (socket) => {
         }
     });
 
-    socket.on('disconnecting', () => {
-        const username = socket.username;
-        const room = socket.room;
-
+    const handleUserLeave = (room, username) => {
         if (!username || !room) return;
 
         const roomUsers = activeRooms.get(room);
-
         if (roomUsers) {
             roomUsers.delete(username);
         }
@@ -180,8 +176,22 @@ io.on('connection', (socket) => {
                 typingUsers.delete(room);
                 roomMessages.delete(room);
             }
-
         }, 100);
+    };
+
+    socket.on('leave_room', (room) => {
+        const username = socket.username;
+        if (username) {
+            handleUserLeave(room, username);
+            socket.leave(room);
+            socket.room = null;
+        }
+    });
+
+    socket.on('disconnecting', () => {
+        const username = socket.username;
+        const room = socket.room;
+        handleUserLeave(room, username);
     });
 
 });

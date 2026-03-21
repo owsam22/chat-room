@@ -130,6 +130,17 @@ function App() {
         }
     };
 
+    const leaveRoom = () => {
+        socket.emit('leave_room', room);
+        setShowChat(false);
+        setRoom('');
+        setMessageList([]);
+        if (roomFromUrl) {
+            window.history.replaceState({}, document.title, window.location.pathname);
+            setRoomFromUrl(false);
+        }
+    };
+
     useEffect(() => {
         const handleReceiveMessage = (data: any) => {
             setMessageList((list) => [...list, data]);
@@ -206,6 +217,7 @@ function App() {
                     onCopyRoomId={copyToClipboard}
                     onShowQR={() => setShowQR(true)}
                     onShare={handleShare}
+                    onLogout={leaveRoom}
                     copied={copied}
                     bottomRef={bottomRef}
                 />

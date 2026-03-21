@@ -1,5 +1,5 @@
 import React from 'react';
-import { Menu, Zap, User, Copy, QrCode, PlusCircle, Send, CheckCircle2, Hash, Share2, X, Reply, Paperclip, File, Download, Loader2 } from 'lucide-react';
+import { Menu, Zap, User, Copy, QrCode, PlusSquare, Send, CheckCircle2, Hash, Share2, X, Reply, Paperclip, File, Download, Loader2, LogOut } from 'lucide-react';
 import { useWebRTC } from '../hooks/useWebRTC';
 
 interface Message {
@@ -33,6 +33,7 @@ interface ChatAreaProps {
     onCopyRoomId: () => void;
     onShowQR: () => void;
     onShare: () => void;
+    onLogout: () => void;
     copied: boolean;
     bottomRef: React.RefObject<HTMLDivElement>;
     participantCount: number;
@@ -52,6 +53,7 @@ const ChatArea: React.FC<ChatAreaProps> = ({
     onCopyRoomId,
     onShowQR,
     onShare,
+    onLogout,
     copied,
     bottomRef,
     participantCount,
@@ -59,8 +61,10 @@ const ChatArea: React.FC<ChatAreaProps> = ({
     typists
 }) => {
     const [showMembers, setShowMembers] = React.useState(false);
+    const [showUserMenu, setShowUserMenu] = React.useState(false);
     const [replyTo, setReplyTo] = React.useState<Message | null>(null);
     const typingTimeoutRef = React.useRef<any>(null);
+    const userMenuRef = React.useRef<HTMLDivElement>(null);
 
     const { sharedFiles, sendFile, requestFile } = useWebRTC(socket, room, username, roomUsers);
     const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -68,6 +72,17 @@ const ChatArea: React.FC<ChatAreaProps> = ({
     // Swipe state
     const [touchStartX, setTouchStartX] = React.useState<number | null>(null);
     const [swipeDistance, setSwipeDistance] = React.useState<{ [key: string]: number }>({});
+
+    // Close user menu on click outside
+    React.useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+                setShowUserMenu(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     const handleTouchStart = (e: React.TouchEvent, msgId: string) => setTouchStartX(e.touches[0].clientX);
 
@@ -77,8 +92,6 @@ const ChatArea: React.FC<ChatAreaProps> = ({
         const diff = currentX - touchStartX;
         const isOwn = msg.author === username;
 
-        // Received (Others): Swipe Right (positive diff)
-        // Sent (Own): Swipe Left (negative diff)
         if (!isOwn && diff > 0 && diff < 80) {
             setSwipeDistance(prev => ({ ...prev, [msg.id]: diff }));
         } else if (isOwn && diff < 0 && diff > -80) {
@@ -151,9 +164,23 @@ const ChatArea: React.FC<ChatAreaProps> = ({
                     </div>
                     <button className="icon-btn share-btn desktop-only" onClick={onShare}><Share2 size={18} /></button>
                     <button className="icon-btn" onClick={onShowQR}><QrCode size={18} /></button>
-                    <div className="user-profile">
-                        <span className="desktop-only" style={{ fontWeight: 600 }}>{username}</span>
-                        <div className="avatar-circle">{username.charAt(0).toUpperCase()}</div>
+                    <div className="user-profile-wrapper" ref={userMenuRef}>
+                        <div className="user-profile" onClick={() => setShowUserMenu(!showUserMenu)}>
+                            <span className="desktop-only" style={{ fontWeight: 600 }}>{username}</span>
+                            <div className="avatar-circle">{username.charAt(0).toUpperCase()}</div>
+                        </div>
+                        {showUserMenu && (
+                            <div className="user-dropdown">
+                                <div className="dropdown-info">
+                                    <div className="dropdown-user-name">{username}</div>
+                                    <div className="dropdown-user-status">Online</div>
+                                </div>
+                                <div className="dropdown-divider"></div>
+                                <button className="dropdown-item logout" onClick={onLogout}>
+                                    <LogOut size={16} /> Logout
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
