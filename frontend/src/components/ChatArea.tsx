@@ -71,14 +71,28 @@ const ChatArea: React.FC<ChatAreaProps> = ({
 
     const handleTouchStart = (e: React.TouchEvent, msgId: string) => setTouchStartX(e.touches[0].clientX);
 
-    const handleTouchMove = (e: React.TouchEvent, msgId: string) => {
+    const handleTouchMove = (e: React.TouchEvent, msg: Message) => {
         if (touchStartX === null) return;
-        const diff = e.touches[0].clientX - touchStartX;
-        if (diff > 0 && diff < 100) setSwipeDistance(prev => ({ ...prev, [msgId]: diff }));
+        const currentX = e.touches[0].clientX;
+        const diff = currentX - touchStartX;
+        const isOwn = msg.author === username;
+
+        // Received (Others): Swipe Right (positive diff)
+        // Sent (Own): Swipe Left (negative diff)
+        if (!isOwn && diff > 0 && diff < 80) {
+            setSwipeDistance(prev => ({ ...prev, [msg.id]: diff }));
+        } else if (isOwn && diff < 0 && diff > -80) {
+            setSwipeDistance(prev => ({ ...prev, [msg.id]: diff }));
+        }
     };
 
     const handleTouchEnd = (msg: Message) => {
-        if (swipeDistance[msg.id] > 50) setReplyTo(msg);
+        const dist = swipeDistance[msg.id] || 0;
+        const isOwn = msg.author === username;
+
+        if ((!isOwn && dist > 40) || (isOwn && dist < -40)) {
+            setReplyTo(msg);
+        }
         setTouchStartX(null);
         setSwipeDistance(prev => ({ ...prev, [msg.id]: 0 }));
     };
@@ -169,13 +183,22 @@ const ChatArea: React.FC<ChatAreaProps> = ({
                             key={msg.id}
                             className={`message-wrapper ${msg.isSystem ? 'system' : msg.author === username ? 'sent' : 'received'}`}
                             onTouchStart={(e) => !msg.isSystem && handleTouchStart(e, msg.id)}
-                            onTouchMove={(e) => !msg.isSystem && handleTouchMove(e, msg.id)}
+                            onTouchMove={(e) => !msg.isSystem && handleTouchMove(e, msg)}
                             onTouchEnd={() => !msg.isSystem && handleTouchEnd(msg)}
                         >
                             {!msg.isSystem && (
                                 <button className="reply-action desktop-only" onClick={() => setReplyTo(msg)}><Reply size={14} /></button>
                             )}
                             <div className="message-bubble-container" style={{ transform: `translateX(${swipeDistance[msg.id] || 0}px)` }}>
+                                {!msg.isSystem && Math.abs(swipeDistance[msg.id] || 0) > 15 && (
+                                    <div className="swipe-indicator" style={{
+                                        opacity: Math.min(Math.abs(swipeDistance[msg.id] || 0) / 40, 1),
+                                        left: msg.author === username ? 'auto' : '-35px',
+                                        right: msg.author === username ? '-35px' : 'auto'
+                                    }}>
+                                        <Reply size={18} />
+                                    </div>
+                                )}
                                 <div className="message-bubble">
                                     {msg.replyTo && (
                                         <div className="reply-quote" onClick={() => document.getElementById(`msg-${msg.replyTo?.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })}>
