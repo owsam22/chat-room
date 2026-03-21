@@ -1,5 +1,6 @@
 import React from 'react';
-import { Menu, Zap, User, Copy, QrCode, PlusCircle, Send, CheckCircle2, Hash, Share2, X, Reply } from 'lucide-react';
+import { Menu, Zap, User, Copy, QrCode, PlusCircle, Send, CheckCircle2, Hash, Share2, X, Reply, Paperclip, File, Download, Loader2 } from 'lucide-react';
+import { useWebRTC } from '../hooks/useWebRTC';
 
 interface Message {
     id: string;
@@ -12,6 +13,12 @@ interface Message {
         author: string;
         message: string;
     } | null;
+    fileInfo?: {
+        fileId: string;
+        name: string;
+        size: number;
+        type: string;
+    } | null;
 }
 
 interface ChatAreaProps {
@@ -21,7 +28,7 @@ interface ChatAreaProps {
     messageList: Message[];
     currentMessage: string;
     setCurrentMessage: (msg: string) => void;
-    sendMessage: (msg: string, replyTo?: any) => void;
+    sendMessage: (msg: string, replyTo?: any, fileInfo?: any) => void;
     onMobileMenuToggle: () => void;
     onCopyRoomId: () => void;
     onShowQR: () => void;
@@ -55,29 +62,23 @@ const ChatArea: React.FC<ChatAreaProps> = ({
     const [replyTo, setReplyTo] = React.useState<Message | null>(null);
     const typingTimeoutRef = React.useRef<any>(null);
 
+    const { sharedFiles, sendFile, requestFile } = useWebRTC(socket, room, username, roomUsers);
+    const fileInputRef = React.useRef<HTMLInputElement>(null);
+
     // Swipe state
     const [touchStartX, setTouchStartX] = React.useState<number | null>(null);
     const [swipeDistance, setSwipeDistance] = React.useState<{ [key: string]: number }>({});
 
-    const handleTouchStart = (e: React.TouchEvent, msgId: string) => {
-        setTouchStartX(e.touches[0].clientX);
-    };
+    const handleTouchStart = (e: React.TouchEvent, msgId: string) => setTouchStartX(e.touches[0].clientX);
 
     const handleTouchMove = (e: React.TouchEvent, msgId: string) => {
         if (touchStartX === null) return;
-        const currentX = e.touches[0].clientX;
-        const diff = currentX - touchStartX;
-
-        // Only allow swiping to the right (positive diff) if it's not a system message
-        if (diff > 0 && diff < 100) {
-            setSwipeDistance(prev => ({ ...prev, [msgId]: diff }));
-        }
+        const diff = e.touches[0].clientX - touchStartX;
+        if (diff > 0 && diff < 100) setSwipeDistance(prev => ({ ...prev, [msgId]: diff }));
     };
 
     const handleTouchEnd = (msg: Message) => {
-        if (swipeDistance[msg.id] > 50) {
-            setReplyTo(msg);
-        }
+        if (swipeDistance[msg.id] > 50) setReplyTo(msg);
         setTouchStartX(null);
         setSwipeDistance(prev => ({ ...prev, [msg.id]: 0 }));
     };
@@ -85,56 +86,42 @@ const ChatArea: React.FC<ChatAreaProps> = ({
     const getAuthorColor = (name: string) => {
         const colors = ['var(--user-1)', 'var(--user-2)', 'var(--user-3)', 'var(--user-4)', 'var(--user-5)', 'var(--user-6)'];
         let hash = 0;
-        for (let i = 0; i < name.length; i++) {
-            hash = name.charCodeAt(i) + ((hash << 5) - hash);
-        }
+        for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
         return colors[Math.abs(hash) % colors.length];
     };
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setCurrentMessage(e.target.value);
-
-        // Emit typing status
         socket.emit('typing_status', { room, username, isTyping: true });
-
         if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-
-        typingTimeoutRef.current = setTimeout(() => {
-            socket.emit('typing_status', { room, username, isTyping: false });
-        }, 2000);
+        typingTimeoutRef.current = setTimeout(() => socket.emit('typing_status', { room, username, isTyping: false }), 2000);
     };
 
     const handleSend = () => {
         if (currentMessage.trim() === '') return;
-
-        sendMessage(currentMessage, replyTo ? {
-            id: replyTo.id,
-            author: replyTo.author,
-            message: replyTo.message
-        } : null);
-
+        sendMessage(currentMessage, replyTo ? { id: replyTo.id, author: replyTo.author, message: replyTo.message } : null);
         setCurrentMessage('');
         setReplyTo(null);
-
-        // Immediately stop typing indicator on send
         if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
         socket.emit('typing_status', { room, username, isTyping: false });
     };
 
-    const formatTypingText = () => {
-        if (typists.length === 0) return '';
-        if (typists.length === 1) return `${typists[0]} is typing...`;
-        if (typists.length === 2) return `${typists[0]} and ${typists[1]} are typing...`;
-        return `${typists[0]} and ${typists.length - 1} others are typing...`;
+    const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            const fileMeta = await sendFile(file);
+            sendMessage(file.name, null, fileMeta);
+            e.target.value = '';
+        }
     };
+
+    const formatSize = (bytes: number) => (bytes / 1024 / 1024).toFixed(2) + ' MB';
 
     return (
         <div className="chat-main">
             <div className="chat-header">
                 <div className="chat-header-left">
-                    <button className="mobile-toggle" onClick={onMobileMenuToggle}>
-                        <Menu size={20} />
-                    </button>
+                    <button className="mobile-toggle" onClick={onMobileMenuToggle}><Menu size={20} /></button>
                     <div className="chat-room-info" onClick={() => setShowMembers(!showMembers)}>
                         <h3>#{room}</h3>
                         <div className="room-badge">
@@ -142,27 +129,17 @@ const ChatArea: React.FC<ChatAreaProps> = ({
                         </div>
                     </div>
                 </div>
-
                 <div className="header-actions">
-                    <div className="room-id-chip" onClick={onCopyRoomId} title="Click to Copy Share Link">
+                    <div className="room-id-chip" onClick={onCopyRoomId} title="Copy Share Link">
                         <Hash size={16} className="text-primary" />
                         <span>{room}</span>
                         {copied ? <CheckCircle2 size={16} className="text-primary" /> : <Copy size={16} />}
                     </div>
-
-                    <button className="icon-btn share-btn desktop-only" title="Share Room" onClick={onShare}>
-                        <Share2 size={18} />
-                    </button>
-
-                    <button className="icon-btn" title="Join QR" onClick={onShowQR}>
-                        <QrCode size={18} />
-                    </button>
-
+                    <button className="icon-btn share-btn desktop-only" onClick={onShare}><Share2 size={18} /></button>
+                    <button className="icon-btn" onClick={onShowQR}><QrCode size={18} /></button>
                     <div className="user-profile">
                         <span className="desktop-only" style={{ fontWeight: 600 }}>{username}</span>
-                        <div className="avatar-circle">
-                            {username.charAt(0).toUpperCase()}
-                        </div>
+                        <div className="avatar-circle">{username.charAt(0).toUpperCase()}</div>
                     </div>
                 </div>
             </div>
@@ -185,72 +162,79 @@ const ChatArea: React.FC<ChatAreaProps> = ({
             )}
 
             <div className="message-container">
-                {messageList.map((msg, index) => (
-                    <div
-                        key={msg.id}
-                        className={`message-wrapper ${msg.isSystem ? 'system' : msg.author === username ? 'sent' : 'received'}`}
-                        onTouchStart={(e) => !msg.isSystem && handleTouchStart(e, msg.id)}
-                        onTouchMove={(e) => !msg.isSystem && handleTouchMove(e, msg.id)}
-                        onTouchEnd={() => !msg.isSystem && handleTouchEnd(msg)}
-                    >
-                        {!msg.isSystem && (
-                            <button
-                                className="reply-action desktop-only"
-                                title="Reply"
-                                onClick={() => setReplyTo(msg)}
-                            >
-                                <Reply size={14} />
-                            </button>
-                        )}
-
+                {messageList.map((msg) => {
+                    const localFile = msg.fileInfo ? sharedFiles.find(f => f.id === msg.fileInfo?.fileId) : null;
+                    return (
                         <div
-                            className="message-bubble-container"
-                            style={{
-                                transform: `translateX(${swipeDistance[msg.id] || 0}px)`,
-                            }}
+                            key={msg.id}
+                            className={`message-wrapper ${msg.isSystem ? 'system' : msg.author === username ? 'sent' : 'received'}`}
+                            onTouchStart={(e) => !msg.isSystem && handleTouchStart(e, msg.id)}
+                            onTouchMove={(e) => !msg.isSystem && handleTouchMove(e, msg.id)}
+                            onTouchEnd={() => !msg.isSystem && handleTouchEnd(msg)}
                         >
-                            {!msg.isSystem && swipeDistance[msg.id] > 20 && (
-                                <div className="swipe-indicator" style={{
-                                    opacity: Math.min(swipeDistance[msg.id] / 50, 1),
-                                    right: 'auto',
-                                    left: '-30px'
-                                }}>
-                                    <Reply size={20} />
-                                </div>
+                            {!msg.isSystem && (
+                                <button className="reply-action desktop-only" onClick={() => setReplyTo(msg)}><Reply size={14} /></button>
                             )}
-
-                            <div className="message-bubble">
-                                {msg.replyTo && (
-                                    <div className="reply-quote" onClick={() => {
-                                        const element = document.getElementById(`msg-${msg.replyTo?.id}`);
-                                        element?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                                    }}>
-                                        <div className="reply-author" style={{ color: getAuthorColor(msg.replyTo.author) }}>
-                                            {msg.replyTo.author}
+                            <div className="message-bubble-container" style={{ transform: `translateX(${swipeDistance[msg.id] || 0}px)` }}>
+                                <div className="message-bubble">
+                                    {msg.replyTo && (
+                                        <div className="reply-quote" onClick={() => document.getElementById(`msg-${msg.replyTo?.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })}>
+                                            <div className="reply-author" style={{ color: getAuthorColor(msg.replyTo.author) }}>{msg.replyTo.author}</div>
+                                            <div className="reply-text">{msg.replyTo.message}</div>
                                         </div>
-                                        <div className="reply-text">{msg.replyTo.message}</div>
+                                    )}
+                                    <div id={`msg-${msg.id}`}>
+                                        {msg.message}
+                                        {msg.fileInfo && (
+                                            <div className="file-bubble-card" style={{
+                                                marginTop: '8px',
+                                                padding: '10px',
+                                                background: 'rgba(0,0,0,0.1)',
+                                                borderRadius: '8px',
+                                                border: '1px solid rgba(255,255,255,0.1)',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '12px',
+                                                minWidth: '220px'
+                                            }}>
+                                                <div className="file-icon-box" style={{ background: 'var(--bg-primary)', padding: '8px', borderRadius: '8px' }}>
+                                                    <File size={24} className="text-primary" />
+                                                </div>
+                                                <div style={{ flex: 1, minWidth: 0 }}>
+                                                    <div style={{ fontWeight: 600, fontSize: '13px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{msg.fileInfo.name}</div>
+                                                    <div style={{ fontSize: '11px', opacity: 0.7 }}>{formatSize(msg.fileInfo.size)}</div>
+                                                    {localFile && localFile.progress < 100 && (
+                                                        <div style={{ marginTop: '4px', height: '4px', background: 'rgba(255,255,255,0.1)', borderRadius: '2px', overflow: 'hidden' }}>
+                                                            <div style={{ width: `${localFile.progress}%`, height: '100%', background: 'var(--text-primary)', transition: 'width 0.2s' }}></div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div className="file-status">
+                                                    {localFile?.url ? (
+                                                        <a href={localFile.url} download={msg.fileInfo.name} className="icon-btn" style={{ padding: '6px' }}><Download size={18} /></a>
+                                                    ) : localFile?.progress && localFile.progress > 0 ? (
+                                                        <Loader2 size={18} className="animate-spin opacity-50" />
+                                                    ) : (
+                                                        <button className="icon-btn" onClick={() => requestFile(msg.fileInfo!.fileId)} title="Download"><Download size={18} /></button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                                {!msg.isSystem && (
+                                    <div className="message-meta">
+                                        <span>{msg.author}</span><span>•</span><span>{msg.time}</span>
                                     </div>
                                 )}
-                                <div id={`msg-${msg.id}`}>{msg.message}</div>
                             </div>
-
-                            {!msg.isSystem && (
-                                <div className="message-meta">
-                                    <span>{msg.author}</span>
-                                    <span>•</span>
-                                    <span>{msg.time}</span>
-                                </div>
-                            )}
                         </div>
-                    </div>
-                ))}
-
+                    );
+                })}
                 {typists.length > 0 && (
                     <div className="typing-indicator">
-                        <div className="typing-dots">
-                            <span></span><span></span><span></span>
-                        </div>
-                        {formatTypingText()}
+                        <div className="typing-dots"><span></span><span></span><span></span></div>
+                        {typists.length === 1 ? `${typists[0]} is typing...` : `${typists[0]} and ${typists.length - 1} others typing...`}
                     </div>
                 )}
                 <div ref={bottomRef} />
@@ -260,28 +244,17 @@ const ChatArea: React.FC<ChatAreaProps> = ({
                 {replyTo && (
                     <div className="reply-preview-container">
                         <div className="reply-preview-content">
-                            <div className="reply-author" style={{ color: getAuthorColor(replyTo.author) }}>
-                                Replying to {replyTo.author}
-                            </div>
+                            <div className="reply-author" style={{ color: getAuthorColor(replyTo.author) }}>Replying to {replyTo.author}</div>
                             <div className="reply-text">{replyTo.message}</div>
                         </div>
-                        <button className="icon-btn" onClick={() => setReplyTo(null)}>
-                            <X size={18} />
-                        </button>
+                        <button className="icon-btn" onClick={() => setReplyTo(null)}><X size={18} /></button>
                     </div>
                 )}
                 <div className="input-container">
-                    <PlusCircle size={20} className="action-btn" />
-                    <input
-                        type="text"
-                        value={currentMessage}
-                        placeholder="Ask or type something..."
-                        onChange={handleInputChange}
-                        onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-                    />
-                    <button onClick={handleSend} className="action-btn send-btn">
-                        <Send size={18} />
-                    </button>
+                    <input type="file" ref={fileInputRef} style={{ display: 'none' }} onChange={handleFileSelect} />
+                    <Paperclip size={20} className="action-btn" onClick={() => fileInputRef.current?.click()} />
+                    <input type="text" value={currentMessage} placeholder="Type or share a file..." onChange={handleInputChange} onKeyPress={(e) => e.key === 'Enter' && handleSend()} />
+                    <button onClick={handleSend} className="action-btn send-btn"><Send size={18} /></button>
                 </div>
             </div>
         </div>

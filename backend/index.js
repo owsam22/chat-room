@@ -117,6 +117,11 @@ io.on('connection', (socket) => {
         socket.to(room).emit('receive_message', data);
     });
 
+    socket.on('webrtc_signal', (data) => {
+        const { room } = data;
+        socket.to(room).emit('webrtc_signal', data);
+    });
+
     socket.on('typing_status', (data) => {
         const { room, username, isTyping } = data;
         const typists = typingUsers.get(room);

@@ -83,15 +83,16 @@ function App() {
         }
     };
 
-    const sendMessage = async (msg: string, replyTo?: any) => {
-        if (msg !== '') {
+    const sendMessage = async (msg: string, replyTo?: any, fileInfo?: any) => {
+        if (msg !== '' || fileInfo) {
             const messageData = {
                 id: username + '-' + Date.now(),
                 room: room,
                 author: username,
                 message: msg,
                 time: new Date(Date.now()).getHours() + ":" + new Date(Date.now()).getMinutes().toString().padStart(2, '0'),
-                replyTo: replyTo || null
+                replyTo: replyTo || null,
+                fileInfo: fileInfo || null
             };
 
             await socket.emit('send_message', messageData);
