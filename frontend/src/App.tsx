@@ -10,6 +10,7 @@ import QRModal from './components/QRModal';
 import SearchTab from './components/SearchTab';
 import NewRoomTab from './components/NewRoomTab';
 import SettingsTab from './components/SettingsTab';
+import Pattern from './components/backgroundPattern';
 
 const socket = io(import.meta.env.VITE_API_URL);
 
@@ -177,7 +178,8 @@ function App() {
     }, [messageList]);
 
     return (
-        <React.Fragment>
+        <>
+            <Pattern />
             {!showChat ? (
                 <Login
                     username={username}
@@ -234,7 +236,7 @@ function App() {
                     {showQR && <QRModal room={room} onClose={() => setShowQR(false)} onShare={handleShare} />}
                 </div>
             )}
-        </React.Fragment>
+        </>
     );
 }
 
