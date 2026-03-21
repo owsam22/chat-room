@@ -39,8 +39,11 @@ Participants join instantly.
 Room closes automatically when everyone leaves.
 
 No accounts.  
-No stored messages.  
+No stored messages (after room closing).  
 No long-term data retention.
+
+### 🕒 The Event Chat Experience
+QuickChat is optimized for live, flowing conversations. Unlike simple ephemeral chats, **QuickChat maintains a persistent session history**. This means latecomers can see all previously shared messages and files, ensuring no one misses out on the context of the event.
 
 ---
 
@@ -58,6 +61,14 @@ No long-term data retention.
 - Users choose their own display name
 - Duplicate names prevented inside a room
 - No authentication required
+- **User Profile Menu**: Dropdown with logout and status indicators
+
+## 📂 WebRTC P2P File Sharing
+- **Peer-to-Peer Transfer**: Secure, direct file sharing using `RTCDataChannel`
+- **Zero Server Storage**: Files are streamed directly between browsers
+- **Metered STUN/TURN**: Robust NAT traversal to work across different networks
+- **On-Demand History**: Late joiners can request files shared earlier in the room session
+- **Real-time Progress**: Visual progress bars for both sender and receiver
 
 ## 📲 QR Code Access
 <p align="center">
@@ -71,15 +82,20 @@ No long-term data retention.
 ## 💬 Real-Time Messaging
 - Powered by Socket.IO
 - Instant delivery
+- **Persistent Session History**: Latecomers can see all previous messages and files shared since the room started
+- **Bi-directional Swipe-to-Reply**: Right-swipe on others, Left-swipe on self to reply
 - Join/leave system notifications
+- Real-time **Typing Indicators**
 - Auto-scroll behavior
 - Room auto-closes when empty
 
 ## 🎨 Premium Glassmorphism UI
 - Blur + glass effect
+- **Animated Dynamic Pattern**: Modern sliding geometric background
+- **Responsive Header**: Mobile-optimized layout with keyboard-aware positioning
 - Modern gradient glow accents
 - Clean, minimal layout
-- Fully responsive
+- Fully responsive (supports `100dvh`)
 
 ## 🧹 Automatic Room Lifecycle
 - No persistence
@@ -91,9 +107,11 @@ No long-term data retention.
 # 🛠 Tech Stack
 
 ### Frontend
-- React
-- Vite
-- socket.io-client
+- React (Vite)
+- Socket.IO-client
+- **WebRTC API** (RTCPeerConnection)
+- **Styled-components** (Dynamic Patterns)
+- **Lucide React** (Modern Icons)
 
 ### Backend
 - Node.js
@@ -119,6 +137,7 @@ QuickChat/
 │   ├── 📁 public
 │   ├── 📁 src
 │   │   ├── 📁 components
+│   │   │   ├── 📄 backgroundPattern.tsx
 │   │   │   ├── 📄 ChatArea.tsx
 │   │   │   ├── 📄 Login.tsx
 │   │   │   ├── 📄 NewRoomTab.tsx
@@ -126,6 +145,8 @@ QuickChat/
 │   │   │   ├── 📄 SearchTab.tsx
 │   │   │   ├── 📄 SettingsTab.tsx
 │   │   │   └── 📄 Sidebar.tsx
+│   │   ├── 📁 hooks
+│   │   │   └── 📄 useWebRTC.ts
 │   │   ├── 🎨 App.css
 │   │   ├── 📄 App.tsx
 │   │   ├── 🎨 index.css
