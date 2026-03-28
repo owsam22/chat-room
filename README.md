@@ -25,7 +25,7 @@
 
 ## 🚀 Live Demo
 
-🔗 https://owsam22-quickchat.vercel.app/
+🔗 https://quickchat-owsam22.vercel.app/
 
 ---
 
