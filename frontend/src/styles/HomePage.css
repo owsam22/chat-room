@@ -244,6 +244,7 @@
     display: flex;
     flex-direction: column;
     gap: 2rem;
+    align-items: center;
 }
 
 .features-grid {
@@ -300,6 +301,17 @@
     display: flex;
     flex-direction: column;
     gap: 2rem;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(4px);
+    padding: 2.5rem;
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+[data-theme="dark"] .how-it-works-section {
+    background: rgba(30, 41, 59, 0.9);
+    border-color: rgba(255, 255, 255, 0.1);
 }
 
 .steps-container {
@@ -308,6 +320,7 @@
     align-items: center;
     gap: 1rem;
     flex-wrap: wrap;
+    width: 100%;
 }
 
 @media (max-width: 768px) {
@@ -339,6 +352,24 @@
     text-align: center;
     flex: 1;
     min-width: 150px;
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(2px);
+    padding: 1.5rem;
+    border-radius: 12px;
+    transition: all 0.3s ease;
+}
+
+[data-theme="dark"] .step {
+    background: rgba(15, 23, 42, 0.7);
+}
+
+.step:hover {
+    background: rgba(255, 255, 255, 0.9);
+    transform: translateY(-2px);
+}
+
+[data-theme="dark"] .step:hover {
+    background: rgba(30, 41, 59, 0.9);
 }
 
 .step-number {

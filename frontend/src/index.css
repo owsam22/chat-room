@@ -61,7 +61,8 @@ body::before {
     background-size: 60px 60px;
     background-position: 0 0, 0 0, 30px 30px, 30px 30px;
     animation: slide-bg 10s linear infinite;
-    opacity: 0.4;
+    opacity: 0.25;
+    filter: blur(3px);
 }
 
 [data-theme="dark"] body::before {
@@ -70,7 +71,8 @@ body::before {
       linear-gradient(135deg, transparent 18.75%, #6366f1 0 31.25%, transparent 0),
       linear-gradient(45deg, transparent 18.75%, #6366f1 0 31.25%, transparent 0);
     background-size: 60px 60px;
-    opacity: 0.35;
+    opacity: 0.2;
+    filter: blur(3px);
 }
 
 @keyframes slide-bg {
