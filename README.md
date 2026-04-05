@@ -50,7 +50,9 @@ QuickChat is optimized for live, flowing conversations. Unlike simple ephemeral 
 # 🖼️ Preview
 
 <p align="center">
-  <img src="./assets/preview.png" alt="QuickChat UI Preview" width="85%" />
+  <a href="https://quickchat-owsam22.vercel.app/">
+    <img src="./assets/preview.png" alt="QuickChat UI Preview" width="85%" />
+  </a>
 </p>
 
 ---
