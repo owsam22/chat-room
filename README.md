@@ -6,7 +6,7 @@
   <img src="./assets/banner.png" alt="QuickChat Banner" width="100%" />
 </p>
 
-<h1 align="center">✨ QuickChat</h1>
+<h1 align="center">💬QuickChat</h1>
 <h3 align="center">Instant. Anonymous. Real-Time Event Chat.</h3>
 
 <p align="center">
