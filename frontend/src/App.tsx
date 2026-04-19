@@ -144,10 +144,18 @@ function App() {
         }
     };
 
+    const [isCreatingRoom, setIsCreatingRoom] = useState(false);
+
     const handleHomePageNavigate = (action: 'join' | 'create') => {
         if (action === 'create') {
             const code = Math.random().toString(36).substring(2, 10).toUpperCase();
             setRoom(code);
+            setIsCreatingRoom(true);
+        } else {
+            setIsCreatingRoom(false);
+            if (!roomFromUrl) {
+                setRoom('');
+            }
         }
         setShowHomePage(false);
     };
@@ -203,6 +211,7 @@ function App() {
                     room={room}
                     setRoom={setRoom}
                     joinRoom={joinRoom}
+                    isCreatingInitial={isCreatingRoom}
                     error={error}
                     roomFromUrl={roomFromUrl}
                     socket={socket}
