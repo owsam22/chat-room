@@ -9,12 +9,13 @@ interface LoginProps {
     joinRoom: (isCreating?: boolean) => void;
     error?: string;
     roomFromUrl?: boolean;
+    isCreatingInitial?: boolean;
     socket: any;
     onBack?: () => void;
 }
 
-const Login: React.FC<LoginProps> = ({ username, setUsername, room, setRoom, joinRoom, error: externalError, roomFromUrl, socket, onBack }) => {
-    const [isCreating, setIsCreating] = useState(false);
+const Login: React.FC<LoginProps> = ({ username, setUsername, room, setRoom, joinRoom, isCreatingInitial, error: externalError, roomFromUrl, socket, onBack }) => {
+    const [isCreating, setIsCreating] = useState(isCreatingInitial || false);
     const [localError, setLocalError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     
